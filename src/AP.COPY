@@ -1,0 +1,199 @@
+/* eslint-disable */
+
+import React, { useState } from 'react';
+import './App.css';
+
+function App() {
+  const [selectedPlant, setSelectedPlant] = useState('11');
+  const [product, setProduct] = useState('XPD24082300011');
+  const [productData, setProductData] = useState([]);
+  const [opr, setOpr] = useState('030');
+  const [lot, setLot] = useState('FD2408230001');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedOperation, setSelectedOperation] = useState('R11');
+
+  const handleSearch = async () => {
+    if (!selectedPlant || !product || !opr || !lot) {
+      alert('Plant와 Prodt.Order를 모두 입력해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plant: selectedPlant,
+          productOrder: product,
+          opr: opr,
+          lot: lot
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('데이터 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      setProductData(data);
+
+    } catch (error) {
+      console.error('조회 오류:', error);
+      alert(error.message);
+      setProductData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedPlant || !product || !opr || !lot) {
+      alert('Plant, Product Order, OPR, LOT 정보가 모두 필요합니다.');
+      return;
+    }
+
+    try {
+      const inputText = `${product}-${opr}-${lot}`;
+      console.log('Delete 요청 데이터:', { plant: selectedPlant, inputText });
+
+      const response = await fetch('http://localhost:3001/api/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plant: selectedPlant,
+          inputText
+        })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '삭제 처리 중 오류가 발생했습니다.');
+      }
+
+      alert(result.message);
+      
+      // 성공 시 입력 필드 및 데이터 초기화
+      setProductData([]);
+      setProduct('');
+      setOpr('');
+      setLot('');
+
+    } catch (error) {
+      console.error('Delete 오류:', error);
+      alert(`삭제 처리 중 오류가 발생했습니다: ${error.message}`);
+    }
+  };
+
+  return (
+    <div className="container" style={{ padding: '20px' }}>
+      <h1>Product Management</h1>
+      <div className="search-container" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <input
+          type="text"
+          value={selectedPlant}
+          onChange={(e) => setSelectedPlant(e.target.value)}
+          placeholder="Plant"
+          style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+        />
+        <input
+          type="text"
+          value={product}
+          onChange={(e) => setProduct(e.target.value)}
+          placeholder="Prodt.Order"
+          style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+        />
+        <input
+          type="text"
+          value={opr}
+          onChange={(e) => setOpr(e.target.value)}
+          placeholder="opr"
+        />
+        <input
+          type="text"
+          value={lot}
+          onChange={(e) => setLot(e.target.value)}
+          placeholder="lot"
+        />
+        <button 
+          onClick={handleSearch} 
+          disabled={isLoading}
+          style={{ 
+            padding: '8px 16px', 
+            backgroundColor: isLoading ? '#ccc' : '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          {isLoading ? 'Search...' : 'Search'}
+        </button>
+      </div>
+
+      {productData.length > 0 ? (
+        <div className="result-container">
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <button 
+              onClick={handleDelete}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginBottom: '10px'
+              }}
+            >
+              Delete
+            </button>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>선택</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>PRODT_ORDER_NO</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>PLANT_CD</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>ITEM_CD</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>OPR_NO</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>PROD_QTY_IN_ORDER_UNIT</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>BASE_UNIT</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>ORDER_STATUS</th>
+                <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>MES_LOT_NO_VN041</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productData.map((item, index) => (
+                <tr key={index}>
+                  <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                    <input type="checkbox" />
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.PRODT_ORDER_NO}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.PLANT_CD}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.ITEM_CD}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.OPR_NO}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.PROD_QTY_IN_ORDER_UNIT}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.BASE_UNIT}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.ORDER_STATUS}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{item.MES_LOT_NO_VN041}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          데이터가 없습니다.
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
